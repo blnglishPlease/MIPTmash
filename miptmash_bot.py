@@ -5,12 +5,8 @@ from telegram import ReplyKeyboardMarkup
 import os
 from requests import get
 from bs4 import BeautifulSoup
-import urllib.parse
 import pandas as pd
 import numpy as np
-import types
-
-
 
 
 class MIPTmash_bot(object):
@@ -19,9 +15,7 @@ class MIPTmash_bot(object):
         handler = MessageHandler(Filters.text | Filters.command, self.handle_message)
         self.updater.dispatcher.add_handler(handler)
         self.keyboard_hello = ReplyKeyboardMarkup([['Голосовать', 'Топ 5', 'Пока']], one_time_keyboard=True)
-        #self.keyboard_hello.row('Голосовать', 'Топ 5', 'Пока')
         self.keyboard_choice = ReplyKeyboardMarkup([['1', '2']], one_time_keyboard=True)
-        #self.keyboard_choice.row('1❤️', '2❤️')
         if not os.path.exists('./base'):
             self.database = pd.DataFrame(columns=['id', 'name', 'photo_path', 'rating'])
             self.create_base()
@@ -66,8 +60,7 @@ class MIPTmash_bot(object):
                 teacher_soup = BeautifulSoup(req_to_teacher.text)
                 id = self.add_to_base(teacher_soup, name, id)
                 people_per_group += 1
-                # if (people_per_group > 10):
-                #     break
+
         return id
 
     def add_to_base(self, soup, name, id):
@@ -98,8 +91,8 @@ class MIPTmash_bot(object):
             self.vote = True
             while self.id_1 == self.id_2:
                 self.id_2 = np.random.randint(low = 0, high = self.database.id.count())
-            bot.send_photo(chat_id, open(f'{os.getcwd()}/base/photo/{self.database.iloc[self.id_1, 1]}.jpg', 'rb'))
-            bot.send_photo(chat_id, open(f'{os.getcwd()}/base/photo/{self.database.iloc[self.id_2, 1]}.jpg', 'rb'), reply_markup=self.keyboard_choice)
+            bot.send_photo(chat_id, open(self.database.iloc[self.id_1, 3], 'rb'))
+            bot.send_photo(chat_id, open(self.database.iloc[self.id_2, 3], 'rb'), reply_markup=self.keyboard_choice)
 
         elif update.message.text == '1':
             if self.vote:
@@ -108,9 +101,14 @@ class MIPTmash_bot(object):
                 rating2 = self.database.iloc[self.id_2, 4]
                 self.database.iloc[self.id_1, 4] += 1 / (1 + (rating2 - rating1) / 40)
                 self.database.iloc[self.id_2, 4] -= 1 / (1 + (rating1 - rating2) / 40)
+
+                del self.database['Unnamed: 0']
                 self.database.to_csv(f'{os.getcwd()}/base/database.csv')
+                self.database = pd.read_csv('./base/database.csv')
+
                 bot.send_message(chat_id, 'Твой голос учтен! Хочешь голосовать или увидеть топ 5?', reply_markup=self.keyboard_hello)
                 self.vote = False
+
             else:
 
                 bot.send_message(chat_id, 'Хочешь голосовать или увидеть топ 5?', reply_markup=self.keyboard_hello)
@@ -122,8 +120,11 @@ class MIPTmash_bot(object):
                 rating2 = self.database.iloc[self.id_2, 4]
                 self.database.iloc[self.id_1, 4] -= 1 / (1 + (rating2 - rating1) / 40)
                 self.database.iloc[self.id_2, 4] += 1 / (1 + (rating1 - rating2) / 40)
-                os.remove(f'{os.getcwd()}/base/database.csv')
+
+                del self.database['Unnamed: 0']
                 self.database.to_csv(f'{os.getcwd()}/base/database.csv')
+                self.database = pd.read_csv('./base/database.csv')
+
                 bot.send_message(chat_id, 'Твой голос учтен! Хочешь голосовать или увидеть топ 5?', reply_markup=self.keyboard_hello)
                 self.vote = False
 
@@ -133,13 +134,13 @@ class MIPTmash_bot(object):
 
         elif update.message.text.lower() == 'пока':
 
-            bot.send_message(chat_id, 'До новых встреч', reply_markup=self.keyboard_hello)
+            bot.send_message(chat_id, 'До новых встреч')
 
         elif update.message.text.lower() == 'топ 5':
-            self.database = self.database.sort_values('rating', ascending = False)
+            sort_database = self.database.sort_values('rating', ascending = False)
             for top in range(5):
-                bot.send_message(chat_id, f'{top + 1} место: {self.database.iloc[top + 1, 2]}')
-                bot.send_photo(chat_id, open(f'{os.getcwd()}/base/photo/{self.database.iloc[top + 1, 1]}.jpg', 'rb'))
+                bot.send_message(chat_id, f'{top + 1} место: {sort_database.iloc[top, 2]}')
+                bot.send_photo(chat_id, open(sort_database.iloc[top, 3], 'rb'))
             bot.send_message(chat_id, 'Хочешь голосовать или увидеть топ 5?', reply_markup=self.keyboard_hello)
 
 def main():
