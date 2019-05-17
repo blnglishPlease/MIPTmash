@@ -16,6 +16,7 @@ class MIPTmash_bot(object):
         self.updater.dispatcher.add_handler(handler)
         self.keyboard_hello = ReplyKeyboardMarkup([['Голосовать', 'Топ 5', 'Пока']], one_time_keyboard=True)
         self.keyboard_choice = ReplyKeyboardMarkup([['1', '2']], one_time_keyboard=True)
+        self.keyboard_start = ReplyKeyboardMarkup([['/start']], one_time_keyboard=True)
         if not os.path.exists('./base'):
             self.database = pd.DataFrame(columns=['id', 'name', 'photo_path', 'rating'])
             self.create_base()
@@ -137,11 +138,15 @@ class MIPTmash_bot(object):
             bot.send_message(chat_id, 'До новых встреч')
 
         elif update.message.text.lower() == 'топ 5':
+
             sort_database = self.database.sort_values('rating', ascending = False)
             for top in range(5):
                 bot.send_message(chat_id, f'{top + 1} место: {sort_database.iloc[top, 2]}')
                 bot.send_photo(chat_id, open(sort_database.iloc[top, 3], 'rb'))
             bot.send_message(chat_id, 'Хочешь голосовать или увидеть топ 5?', reply_markup=self.keyboard_hello)
+
+        else:
+            bot.send_message(chat_id, 'Для начала нажми /start',  reply_markup=self.keyboard_start)
 
 def main():
     MIPTmash_bot('728600486:AAE4n6gSxTQ7fuMxzcqDImueBdtcGvEY8b0').run()
